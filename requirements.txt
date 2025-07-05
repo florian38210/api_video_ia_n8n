@@ -1,7 +1,2 @@
-fastapi
-uvicorn
-torch
-diffusers[torch]
-transformers
-pydantic
-imageio
+flask
+
