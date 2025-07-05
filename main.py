@@ -1,29 +1,17 @@
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
-from diffusers import StableDiffusionPipeline, StableVideoDiffusionPipeline
-import torch, os, tempfile
-import shutil
-from fastapi.responses import FileResponse
+import os
+from flask import Flask, request, jsonify
 
-app = FastAPI()
+app = Flask(__name__)
 
-class PromptRequest(BaseModel):
-    prompt: str
+@app.route("/generate-video", methods=["POST"])
+def generate_video():
+    # Ici tu peux récupérer le prompt envoyé dans le JSON
+    data = request.get_json()
+    prompt = data.get("prompt", "Un coucher de soleil magnifique")
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-sd_pipe = StableDiffusionPipeline.from_pretrained("runwayml/stable-diffusion-v1-5").to(device)
-svd_pipe = StableVideoDiffusionPipeline.from_pretrained("stabilityai/stable-video-diffusion-img2vid-xt").to(device)
+    # Pour l'exemple on renvoie un message simple
+    return jsonify({"message": f"Reçu prompt : {prompt}"}), 200
 
-@app.post("/generate")
-def generate_video(request: PromptRequest):
-    prompt = request.prompt
-    image = sd_pipe(prompt).images[0]
-    frames = svd_pipe(image, decode_chunk_size=8, motion_bucket_id=127, noise_aug_strength=0.1).frames[0]
-    
-    tmpdir = tempfile.mkdtemp()
-    output_path = os.path.join(tmpdir, "video.mp4")
-
-    import imageio
-    imageio.mimsave(output_path, frames, fps=6)
-
-    return FileResponse(output_path, media_type="video/mp4", filename="generated_video.mp4")
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))  # PORT fourni par Render
+    app.run(host="0.0.0.0", port=port)
